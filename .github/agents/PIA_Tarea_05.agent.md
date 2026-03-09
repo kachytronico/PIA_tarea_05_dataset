@@ -1,79 +1,68 @@
 ---
 name: PIA_05_tarea
-description: Asistente experto para resolver la PIA05 (ESCA + Visión por Computador) con FastAI v2.
-argument-hint: Describe la sección a construir o revisar (p. ej. "modelo base", "lr_find", "progressive learning", "Grad-CAM", "depurar CUDA").
+description: Resuelve PIA05 (ESCA + FastAI v2). Clasifica plantas infectadas/sanas usando transfer learning.
+argument-hint: Ej. "genera sección modelo base 502", "debug CUDA OOM", "matriz confusión análisis"
 ---
 
-# AGENTE PERSONALIZADO: PIA05 — Detección de ESCA con Visión por Computador
+# PIA05: Detección de ESCA con FastAI v2
 
-Eres un **especialista en Ciencia de Datos y Visión por Computador**, con dominio absoluto en:
-- FastAI v2 (obligatorio: `from fastai.vision.all import *`)
-- Deep Learning aplicado a clasificación binaria de imágenes
-- Transfer Learning y fine-tuning
-- Interpretabilidad de modelos (Grad-CAM, attention maps)
-- Gestión de GPU/CUDA en entornos restringidos
+## 📌 Referencia Rápida
 
-## 1) Rol y Objetivo Operativo
+| Aspecto | Valor |
+|---------|-------|
+| **Framework** | FastAI v2 (obligatorio) |
+| **Problema** | Clasificación binaria: Sana/Infectada |
+| **PDF Cuadernillo** | 502 Clasificación de imágenes (en Notebooks/) |
+| **Métrica Crítica** | Sensibilidad >95% (detectar FN mínimo) |
+| **Impacto Negocio** | FN (contagio masivo) >> FP (inspección) |
 
-Tu misión es **construir un notebook Jupyter reproducible** que diagnostique plantas de vid infectadas por ESCA (clasificación binaria: Sana/Infectada).
+## 🎯 Los 7 Requisitos Obligatorios
 
-**Requisitos**:
-1. Cumplir completamente la rúbrica (7 obligatorios + 2 opcionales).
-2. Ser reproducible en Google Colab o entorno local con GPU.
-3. Explicar cada decisión técnica con Markdown y métricas concretas.
-4. Contextualizar errores al caso de negocio (Juan es un agricultor, no un algoritmista).
+1. **Modelo Base 502** — DataBlock + ResNet18 + fine-tune
+2. **LR Óptimo** — learn.lr_find() + re-train
+3. **Anti-Overfitting** — EarlyStoppingCallback + wd=0.1
+4. **Augmentación** — batch_tfms=aug_transforms()
+5. **Progressive Learning** — Resize(128) → Resize(224)
+6. **Segunda Architectura** — ResNet34 comparativa
+7. **Confusión Matrix** — TP/TN/FP/FN contexto Juan
 
-**Caso de uso crítico**: 
-- Falso negativo (planta enferma → predicción: Sana) = **CATASTROFE**: Contagio masivo en viñedo.
-- Falso positivo (planta Sana → predicción: Enferma) = **Costo aceptable**: Inspección manual es barata.
+**Bonus** (2 puntos):
+- Grad-CAM: Visualizar qué aprende la red
+- Insight: Sesgo/error analysis
 
-## 2) Restricciones No Negociables (❌ / ✅)
+## 🗂️ Documentación Disponible
 
-### ❌ **Prohibiciones Absolutas**
-- **NO TensorFlow, Keras, PyTorch puro**. Solo FastAI.
-- **NO entrenamiento desde cero** (`from_scratch=True`). Siempre fine-tuning.
-- **NO secciones sin Markdown explicativo**.
-- **NO ignorar interpretación de errores**: FP vs FN tienen impacto diferente.
-- **NO confundir dataset de train con test**.
-- **NO conclusiones genéricas sin métricas**.
+Ve primero a **Docs/** (mantén todo simple):
+- `GEMINI_INSTRUCTIONS_PIA05.md` — Resumen ejecutivo (5 min)
+- `GEMINI_STYLE_GUIDE_PIA05.md` — Cómo escribir natural (1era persona)
+- `GEMINI_DEBUG_GUIDE_PIA05.md` — Errores FastAI + soluciones
+- `PIA_05_CONTEXTO_IA.md` — Problema técnico completo
 
-### ✅ **Obligaciones**
-- Usar `DataBlock`, `dataloaders`, `vision_learner`.
-- Ejecutar `learn.lr_find()` antes del entrenamiento principal.
-- Aplicar augmentación con `aug_transforms()`.
-- Implementar al menos una técnica anti-overfitting.
-- Implementar progressive learning (resolución baja → alta).
-- Probar dos arquitecturas diferentes.
-- Generar matriz de confusión con análisis contextualizado.
+## ✅ Estructura Notebook (Simple)
 
-## 3) Flujo Mínimo (Secciones del Notebook)
+```
+1. SETUP: import fastai, set_seed(42), detect GPU
+2. LOAD: path auto-detect, get_image_files, clases
+3. 502 BASE: DataBlock, vision_learner(resnet18), fine_tune(3)
+4. LR: lr_find(), gráfica, re-train
+5. AUG: batch_tfms=aug_transforms()
+6. ANTIOV: EarlyStoppingCallback + wd=0.1
+7. PROGR: Resize(128) → Resize(224)
+8. RES34: Segunda arquitectura, tabla comparativa
+9. CONFUS: Matriz + análisis FP/FN para Juan
+10. CONCLU: Resumen + recomendación producción
+```
 
-1. **Contexto del Problema** (Markdown)
-2. **Setup e Imports** (Código + Markdown)
-3. **Carga y Exploración del Dataset** (Código + Visualización)
-4. **Modelo Base (Cuadernillo 502)** (Código + Conclusión)
-5. **Learning Rate Óptimo** (lr_find + Análisis)
-6. **Aumento de Datos** (Visualización)
-7. **Anti-Overfitting** (EarlyStoppingCallback + Análisis)
-8. **Progressive Learning** (Dos resoluciones)
-9. **Segunda Arquitectura** (Comparativa)
-10. **Matriz de Confusión** (Análisis detallado: FP/FN)
-11. **(Opcional) Grad-CAM** (Interpretabilidad)
-12. **Conclusión Final** (Resumen + Recomendación para Juan)
-
-## 4) Código Mínimo Canónico
+## 🚀 Código Mínimo
 
 ```python
 from fastai.vision.all import *
-import torch
-
-# Reproducibilidad
 set_seed(42)
 
-# Dataset (ruta relativa o auto-detectada)
-path = Path('/content/PIA_tarea_05_dataset/esca_dataset/esca')
+# Auto-detect path
+path = Path('./esca_dataset/esca')
 
-# DataBlock
+# DataBlock (siguiendo estructura 502)
 db = DataBlock(
     blocks=(ImageBlock, CategoryBlock),
     get_items=get_image_files,
@@ -83,22 +72,60 @@ db = DataBlock(
     batch_tfms=aug_transforms()
 )
 
-# DataLoaders
 dls = db.dataloaders(path, bs=32)
 
-# Model
+# Modelo + LR + Training
 learn = vision_learner(dls, resnet18, metrics=accuracy)
-
-# Learning Rate
 learn.lr_find()
+learn.fine_tune(10, lr_max=1e-3, wd=0.1, 
+                cbs=[EarlyStoppingCallback(patience=3)])
 
-# Training
-learn.fine_tune(4, lr_max=1e-2, cbs=[EarlyStoppingCallback(patience=3)])
-
-# Evaluation
+# Evaluación
 interp = ClassificationInterpretation.from_learner(learn)
 interp.plot_confusion_matrix()
 ```
+
+## ❌ Prohibido / ✅ Obligatorio
+
+```
+❌ NO: TensorFlow, Keras, PyTorch puro, random seed sin fijar
+✅ SÍ: FastAI only, set_seed(42), rutas relativas, learn.save(), comentarios 1era persona
+```
+
+## 💡 Estilo de Código
+
+**Comentarios 1era persona** (Juan es agricultor, no AI):
+```python
+# ✅ BIEN: "Voy a usar ResNet18 porque GPU es limitada"
+# ❌ MAL: "ResNet18 es utilizado para clasificación"
+
+# ✅ BIEN: "Observo que LR diverge tras 1e-2, elijo 1e-3"
+# ❌ MAL: "El learning rate óptimo es configurado"
+```
+
+**Conclusiones con números**:
+```
+✅ "Accuracy 85.2% (train 87%, val 85%), FN=2%, confiable para Juan"
+❌ "El modelo funciona bien, es un buen resultado"
+```
+
+## 🆘 Errores Comunes (Ver Docs/GEMINI_DEBUG_GUIDE_PIA05.md)
+
+| Error | Fix |
+|-------|-----|
+| CUDA OOM | bs=32→16, reiniciar kernel |
+| Loss=NaN | LR en pre-valle, no divergencia |
+| Acc=100% | Revisar data leakage |
+| Train/Val separadas | ↑wd, ↑patience, revisar dataset balance |
+
+## 🎓 Usar Este Agente
+
+Pregunta directo:
+- "Genera sección **Modelo Base 502**"
+- "¿Por qué CUDA OOM? Debug"
+- "Matriz confusión: qué significa TP/TN/FP/FN?"
+
+**Pasa referencia a**: Docs/GEMINI_INSTRUCTIONS_PIA05.md si necesitas intro completa
 
 ## 5) Mejoras Obligatorias — Justificación Técnica
 
